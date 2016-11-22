@@ -646,43 +646,46 @@ begin
       FDocument.Pages[FPageIndex].Close;
     OldPageIndex := FPageIndex;
     FPageIndex := Value;
-    ScrollInfo.cbSize := SizeOf(ScrollInfo);
-    if ScrollTransition then
+    if Self.Visible then // To use TPdfControl without parent form(not shown).
     begin
-      // Keep the Scroll XOffset but scroll the page to the top or the bottom depending on the
-      // PageIndex change.
-      ScrollY := 0;
-      ScrollInfo.fMask := SIF_RANGE or SIF_PAGE or SIF_POS;
-      if GetScrollInfo(Handle, SB_VERT, ScrollInfo) then
+      ScrollInfo.cbSize := SizeOf(ScrollInfo);
+      if ScrollTransition then
       begin
-        if InversScrollTransition then
+        // Keep the Scroll XOffset but scroll the page to the top or the bottom depending on the
+        // PageIndex change.
+        ScrollY := 0;
+        ScrollInfo.fMask := SIF_RANGE or SIF_PAGE or SIF_POS;
+        if GetScrollInfo(Handle, SB_VERT, ScrollInfo) then
         begin
-          if FPageIndex < OldPageIndex then
-            ScrollY := 0
+          if InversScrollTransition then
+          begin
+            if FPageIndex < OldPageIndex then
+              ScrollY := 0
+            else
+              ScrollY := ScrollInfo.nMax {- Integer(ScrollInfo.nPage)};
+          end
           else
-            ScrollY := ScrollInfo.nMax {- Integer(ScrollInfo.nPage)};
-        end
-        else
-        begin
-          if FPageIndex > OldPageIndex then
-            ScrollY := 0
-          else
-            ScrollY := ScrollInfo.nMax {- Integer(ScrollInfo.nPage)};
+          begin
+            if FPageIndex > OldPageIndex then
+              ScrollY := 0
+            else
+              ScrollY := ScrollInfo.nMax {- Integer(ScrollInfo.nPage)};
+          end;
         end;
-      end;
-      if ScrollInfo.nPos <> ScrollY then
+        if ScrollInfo.nPos <> ScrollY then
+        begin
+          ScrollInfo.fMask := SIF_POS;
+          ScrollInfo.nPos := ScrollY;
+          SetScrollInfo(Handle, SB_VERT, ScrollInfo, True);
+        end;
+      end
+      else // Scroll to the page to the left/top corner
       begin
         ScrollInfo.fMask := SIF_POS;
-        ScrollInfo.nPos := ScrollY;
+        ScrollInfo.nPos := 0;
         SetScrollInfo(Handle, SB_VERT, ScrollInfo, True);
+        SetScrollInfo(Handle, SB_HORZ, ScrollInfo, True);
       end;
-    end
-    else // Scroll to the page to the left/top corner
-    begin
-      ScrollInfo.fMask := SIF_POS;
-      ScrollInfo.nPos := 0;
-      SetScrollInfo(Handle, SB_VERT, ScrollInfo, True);
-      SetScrollInfo(Handle, SB_HORZ, ScrollInfo, True);
     end;
     PageContentChanged(False);
     Result := True;
